@@ -6,6 +6,12 @@ all:
 clean:
 	@$(MAKE) -C /lib/modules/$(shell uname -r)/build M=$(CURDIR) clean
 
+load:
+	insmod b5m-kbd.ko
+
+unload:
+	rmmod b5m-kbd
+
 install:
 	mkdir -p /lib/modules/$(shell uname -r)/extra
 	cp b5m-kbd.ko /lib/modules/$(shell uname -r)/extra
