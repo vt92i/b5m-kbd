@@ -2,6 +2,7 @@
 #include <linux/acpi.h>
 #include <linux/init.h>
 #include <linux/kernel.h>
+#include <linux/leds.h>
 #include <linux/module.h>
 #include <linux/moduleparam.h>
 #include <linux/platform_device.h>
@@ -59,10 +60,35 @@ static int ec_unset_bit(u8 addr, u8 bit) {
   return ec_write(addr, stored);
 }
 
-static struct led_classdev mute_led_cdev = {
+static enum led_brightness audiomute_led_get(struct led_classdev *led_cdev) {
+  bool audiomute_led_status;
+  int result;
+
+  result = ec_check_bit(MSI_EC_KB_VOLUMEMUTE_LED_ADDRESS, MSI_EC_KB_VOLUMEMUTE_LED_BIT, &audiomute_led_status);
+  if (result < 0) return result;
+
+  return audiomute_led_status ? LED_ON : LED_OFF;
+}
+
+static void audiomute_led_set(struct led_classdev *led_cdev, enum led_brightness brightness) {
+  int result;
+
+  if (brightness == LED_OFF) {
+    result = ec_unset_bit(MSI_EC_KB_VOLUMEMUTE_LED_ADDRESS, MSI_EC_KB_VOLUMEMUTE_LED_BIT);
+    if (result < 0) return;
+  } else {
+    result = ec_set_bit(MSI_EC_KB_VOLUMEMUTE_LED_ADDRESS, MSI_EC_KB_VOLUMEMUTE_LED_BIT);
+    if (result < 0) return;
+  }
+}
+
+static struct led_classdev audiomute_led_cdev = {
     .name = "platform::audiomute",
-    .max_brightness = 1,
     .default_trigger = "audio-mute",
+    .max_brightness = LED_ON,
+    .brightness = LED_OFF,
+    .brightness_get = audiomute_led_get,
+    .brightness_set = audiomute_led_set,
 };
 
 static int ec_read_seq(u8 addr, u8 *buf, u8 len) {
@@ -90,8 +116,8 @@ static int __init hello_init(void) {
   bool micmute_led;
   u8 buf[MSI_EC_FW_VERSION_LENGTH + 1];
 
-  // Register the mute LED
-  result = led_classdev_register(NULL, &mute_led_cdev);
+  // Register the audiomute LED
+  result = led_classdev_register(NULL, &audiomute_led_cdev);
   if (result < 0)
     printk(KERN_ERR "Failed to register audiomute LED\n");
   else
@@ -113,8 +139,8 @@ static int __init hello_init(void) {
   printk(KERN_INFO "MSI EC Keyboard Micmute LED: %s\n", micmute_led ? "on" : "off");
 
   // Turn on the volumemute LED
-  result = ec_set_bit(MSI_EC_KB_VOLUMEMUTE_LED_ADDRESS, MSI_EC_KB_VOLUMEMUTE_LED_BIT);
-  if (result < 0) return result;
+  // result = ec_set_bit(MSI_EC_KB_VOLUMEMUTE_LED_ADDRESS, MSI_EC_KB_VOLUMEMUTE_LED_BIT);
+  // if (result < 0) return result;
 
   result = ec_check_bit(MSI_EC_KB_VOLUMEMUTE_LED_ADDRESS, MSI_EC_KB_VOLUMEMUTE_LED_BIT, &micmute_led);
   if (result < 0) return result;
@@ -125,14 +151,14 @@ static int __init hello_init(void) {
 }
 
 static void __exit hello_exit(void) {
-  led_classdev_unregister(&mute_led_cdev);
+  led_classdev_unregister(&audiomute_led_cdev);
   ec_unset_bit(MSI_EC_KB_MICMUTE_LED_ADDRESS, MSI_EC_KB_MICMUTE_LED_BIT);
   ec_unset_bit(MSI_EC_KB_VOLUMEMUTE_LED_ADDRESS, MSI_EC_KB_VOLUMEMUTE_LED_BIT);
 }
 
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Fila <fe@vt92i.dev>");
-MODULE_DESCRIPTION("MSI Modern B5M Keyboard Backlight Kernel Module");
+MODULE_DESCRIPTION("MSI Modern 14 - B5M Keyboard Backlight and LEDs Kernel Module");
 MODULE_VERSION("0.24");
 
 module_init(hello_init);
