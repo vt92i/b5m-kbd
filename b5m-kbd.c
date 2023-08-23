@@ -11,63 +11,17 @@
 #include <linux/slab.h>
 #include <linux/string.h>
 
+#include "ec_address.h"
 #include "ec_utils.h"
 
-#define EC_FW_VERSION_ADDRESS 0xA0
-#define EC_FW_VERSION_LENGTH 12
-
-#define EC_KBD_AUDIOMUTE_LED_ADDRESS 0x2C
-#define EC_KBD_AUDIOMUTE_LED_BIT 2
-
-#define EC_KBD_MICMUTE_LED_ADDRESS 0x2B
-#define EC_KBD_MICMUTE_LED_BIT 2
-
-#define EC_KBD_BACKLIGHT_ADDRESS_STATE 0xD3
-#define EC_KBD_BACKLIGHT_MAX_STATE 3
-
-static int ec_check_bit(u8 addr, u8 bit, bool *output) {
+static int ec_get_firmware_version(u8 buf[EC_FW_VERSION_LENGTH + 1]) {
   int result;
-  u8 stored;
 
-  result = ec_read(addr, &stored);
+  memset(buf, 0, EC_FW_VERSION_LENGTH + 1);
+  result = ec_read_seq(EC_FW_VERSION_ADDRESS, buf, EC_FW_VERSION_LENGTH);
   if (result < 0) return result;
 
-  *output = check_bit(stored, bit);
-
-  return 0;
-}
-
-static int ec_set_bit(u8 addr, u8 bit) {
-  int result;
-  u8 stored;
-
-  result = ec_read(addr, &stored);
-  if (result < 0) return result;
-
-  set_bit(stored, bit);
-
-  return ec_write(addr, stored);
-}
-
-static int ec_unset_bit(u8 addr, u8 bit) {
-  int result;
-  u8 stored;
-
-  result = ec_read(addr, &stored);
-  if (result < 0) return result;
-
-  unset_bit(stored, bit);
-
-  return ec_write(addr, stored);
-}
-
-static int ec_read_seq(u8 addr, u8 *buf, u8 len) {
-  int result;
-  for (u8 i = 0; i < len; i++) {
-    result = ec_read(addr + i, buf + i);
-    if (result < 0) return result;
-  }
-  return 0;
+  return EC_FW_VERSION_LENGTH + 1;
 }
 
 static int audiomute_led_set(struct led_classdev *led_cdev, enum led_brightness brightness) {
@@ -95,16 +49,6 @@ static struct led_classdev micmute_led_cdev = {
     .max_brightness = LED_ON,
     .brightness_set_blocking = micmute_led_set,
 };
-
-static int ec_get_firmware_version(u8 buf[EC_FW_VERSION_LENGTH + 1]) {
-  int result;
-
-  memset(buf, 0, EC_FW_VERSION_LENGTH + 1);
-  result = ec_read_seq(EC_FW_VERSION_ADDRESS, buf, EC_FW_VERSION_LENGTH);
-  if (result < 0) return result;
-
-  return EC_FW_VERSION_LENGTH + 1;
-}
 
 static int __init hello_init(void) {
   int result;
