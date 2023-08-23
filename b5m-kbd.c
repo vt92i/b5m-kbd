@@ -71,17 +71,8 @@ static int ec_read_seq(u8 addr, u8 *buf, u8 len) {
 }
 
 static int audiomute_led_set(struct led_classdev *led_cdev, enum led_brightness brightness) {
-  int result;
-  u8 value;
-
-  result = brightness == LED_OFF ? ec_unset_bit(EC_KBD_AUDIOMUTE_LED_ADDRESS, EC_KBD_AUDIOMUTE_LED_BIT)
-                                 : ec_set_bit(EC_KBD_AUDIOMUTE_LED_ADDRESS, EC_KBD_AUDIOMUTE_LED_BIT);
-
-  result = ec_read(EC_KBD_AUDIOMUTE_LED_ADDRESS, &value);
-  if (result < 0) return result;
-
-  printk(KERN_INFO "MSI B5M - AudioMute LED Trigger - EC 0x%02X: 0x%02X\n", EC_KBD_AUDIOMUTE_LED_ADDRESS, value);
-
+  int result = brightness == LED_OFF ? ec_unset_bit(EC_KBD_AUDIOMUTE_LED_ADDRESS, EC_KBD_AUDIOMUTE_LED_BIT)
+                                     : ec_set_bit(EC_KBD_AUDIOMUTE_LED_ADDRESS, EC_KBD_AUDIOMUTE_LED_BIT);
   return result < 0 ? result : 0;
 }
 
@@ -93,17 +84,8 @@ static struct led_classdev audiomute_led_cdev = {
 };
 
 static int micmute_led_set(struct led_classdev *led_cdev, enum led_brightness brightness) {
-  int result;
-  u8 value;
-
-  result = brightness == LED_OFF ? ec_unset_bit(EC_KBD_MICMUTE_LED_ADDRESS, EC_KBD_MICMUTE_LED_BIT)
-                                 : ec_set_bit(EC_KBD_MICMUTE_LED_ADDRESS, EC_KBD_MICMUTE_LED_BIT);
-
-  result = ec_read(EC_KBD_MICMUTE_LED_ADDRESS, &value);
-  if (result < 0) return result;
-
-  printk(KERN_INFO "MSI B5M - MicMute LED Trigger - EC 0x%02X: 0x%02X\n", EC_KBD_MICMUTE_LED_ADDRESS, value);
-
+  int result = brightness == LED_OFF ? ec_unset_bit(EC_KBD_MICMUTE_LED_ADDRESS, EC_KBD_MICMUTE_LED_BIT)
+                                     : ec_set_bit(EC_KBD_MICMUTE_LED_ADDRESS, EC_KBD_MICMUTE_LED_BIT);
   return result < 0 ? result : 0;
 }
 
@@ -131,17 +113,17 @@ static int __init hello_init(void) {
   result = ec_get_firmware_version(buf);
   if (result < 0) return result;
 
-  printk(KERN_INFO "MSI B5M - EC Firmware Version: %s\n", buf);
-  for (u8 i = 0x0; i <= 0xF; i++) {
-    u8 value;
-    u8 address_base = i * 0x10;
-    printk(KERN_INFO "MSI B5M - EC - 0x%02X\n", address_base);
-    for (u8 j = 0x0; j <= 0xF; j++) {
-      result = ec_read(address_base + j, &value);
-      if (result < 0) return result;
-      printk(KERN_INFO "\tMSI B5M - EC 0x%02X: 0x%02X (%d)\n", address_base + j, value, value);
-    }
-  }
+  printk(KERN_INFO "b5m-kbd: %s (EC Firmware Version)\n", buf);
+  // for (u8 i = 0x0; i <= 0xF; i++) {
+  //   u8 value;
+  //   u8 address_base = i * 0x10;
+  //   printk(KERN_INFO "MSI B5M - EC - 0x%02X\n", address_base);
+  //   for (u8 j = 0x0; j <= 0xF; j++) {
+  //     result = ec_read(address_base + j, &value);
+  //     if (result < 0) return result;
+  //     printk(KERN_INFO "\tMSI B5M - EC 0x%02X: 0x%02X (%d)\n", address_base + j, value, value);
+  //   }
+  // }
 
   result = led_classdev_register(NULL, &audiomute_led_cdev);
   if (result < 0) return result;
