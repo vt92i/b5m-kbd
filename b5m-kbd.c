@@ -58,6 +58,11 @@ static int __init hello_init(void) {
   if (result < 0) return result;
 
   printk(KERN_INFO "b5m-kbd: %s (EC Firmware Version)\n", buf);
+
+  // Cooler Boost
+  result = ec_set_bit(0x98, 7);
+  if (result < 0) return result;
+
   // for (u8 i = 0x0; i <= 0xF; i++) {
   //   u8 value;
   //   u8 address_base = i * 0x10;
@@ -81,6 +86,7 @@ static int __init hello_init(void) {
 static void __exit hello_exit(void) {
   led_classdev_unregister(&audiomute_led_cdev);
   led_classdev_unregister(&micmute_led_cdev);
+  ec_unset_bit(0x98, 7);
 }
 
 MODULE_LICENSE("GPL");
